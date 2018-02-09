@@ -22,20 +22,34 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"os"
+	"log"
 
 	"github.com/MarioCarrion/gitlab-tools"
 )
 
 func main() {
-	token := os.Getenv("GITLAB_TOOLS_TOKEN")
-	baseURL := os.Getenv("GITLAB_TOOLS_URL")
+	token := flag.String("token", "", "private Gitlab token")
+	baseURL := flag.String("baseURL", "", "base Gitlab URL")
+	group := flag.String("group", "", "Gitlab group name")
 
-	git := gitlab.NewClient(token, baseURL)
-	milestones, err := git.GetMilestones("polaris")
+	flag.Parse()
+
+	if len(*token) == 0 {
+		log.Fatalln("Required parameter missing: 'token'")
+	}
+	if len(*baseURL) == 0 {
+		log.Fatalln("Required parameter missing: 'baseURL'")
+	}
+	if len(*group) == 0 {
+		log.Fatalln("Required parameter missing: 'group'")
+	}
+
+	git := gitlab.NewClient(*token, *baseURL)
+	milestones, err := git.GetMilestones(*group)
 	if err != nil {
-		fmt.Println("error ", err)
+		log.Fatalln("error ", err)
 	}
 
 	for _, milestone := range milestones {

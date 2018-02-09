@@ -71,10 +71,10 @@ func (c *Client) GetMilestones(group string) ([]Milestone, error) {
 		return milestones, err
 	}
 
-  err = json.Unmarshal(result, &milestones)
-  if err != nil {
-    return milestones, err
-  }
+	err = json.Unmarshal(result, &milestones)
+	if err != nil {
+		return milestones, err
+	}
 
 	return milestones, nil
 }
