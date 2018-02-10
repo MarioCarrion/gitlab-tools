@@ -23,6 +23,7 @@ package gitlab
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -50,6 +51,10 @@ type Milestone struct {
 	DueDate     string `json:"due_date"`
 	StartDate   string `json:"start_date"`
 	State       string `json:"state"`
+}
+
+type Error struct {
+	Message string `json:"message"`
 }
 
 func (c *Client) GetMilestones(group string) ([]Milestone, error) {
@@ -87,5 +92,23 @@ func doRequest(req *http.Request) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	return ioutil.ReadAll(resp.Body)
+	b, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return b, err
+	}
+
+	if resp.StatusCode != 200 {
+		return []byte{}, createErrorFromResponse(b)
+	}
+	return b, nil
+}
+
+func createErrorFromResponse(r []byte) error {
+	errStruct := Error{}
+	err := json.Unmarshal(r, &errStruct)
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf(errStruct.Message)
 }

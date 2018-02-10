@@ -25,34 +25,51 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/MarioCarrion/gitlab-tools"
 )
 
 func main() {
+	token, baseURL, group := parseArgs()
+
+	if len(token) == 0 {
+		log.Fatalln("Required parameter missing: 'token'")
+	}
+	if len(baseURL) == 0 {
+		log.Fatalln("Required parameter missing: 'baseURL'")
+	}
+	if len(group) == 0 {
+		log.Fatalln("Required parameter missing: 'group'")
+	}
+
+	git := gitlab.NewClient(token, baseURL)
+	milestones, err := git.GetMilestones(group)
+	if err != nil {
+		log.Fatalln("error", err)
+	}
+
+	for _, milestone := range milestones {
+		fmt.Printf("%+v\n", milestone)
+	}
+}
+
+func parseArgs() (string, string, string) {
 	token := flag.String("token", "", "private Gitlab token")
 	baseURL := flag.String("baseURL", "", "base Gitlab URL")
 	group := flag.String("group", "", "Gitlab group name")
 
 	flag.Parse()
 
-	if len(*token) == 0 {
-		log.Fatalln("Required parameter missing: 'token'")
+	retToken := *token
+	retBaseURL := *baseURL
+
+	if len(retToken) == 0 {
+		retToken = os.Getenv("GITLAB_TOOLS_TOKEN")
 	}
-	if len(*baseURL) == 0 {
-		log.Fatalln("Required parameter missing: 'baseURL'")
-	}
-	if len(*group) == 0 {
-		log.Fatalln("Required parameter missing: 'group'")
+	if len(retBaseURL) == 0 {
+		retBaseURL = os.Getenv("GITLAB_TOOLS_BASE_URL")
 	}
 
-	git := gitlab.NewClient(*token, *baseURL)
-	milestones, err := git.GetMilestones(*group)
-	if err != nil {
-		log.Fatalln("error ", err)
-	}
-
-	for _, milestone := range milestones {
-		fmt.Printf("%+v\n", milestone)
-	}
+	return retToken, retBaseURL, *group
 }
