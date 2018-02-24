@@ -29,38 +29,30 @@ import (
 	"strings"
 )
 
+// Client represents the handler used for interacting with the Gitlab API
 type Client struct {
 	token   string
 	baseURL string
 }
 
-func NewClient(token, baseURL string) *Client {
-	return &Client{token, baseURL}
-}
-
-func buildUrl(values ...string) string {
-	return strings.Join(values, "/")
-}
-
-type Milestone struct {
-	ID          int64  `json:"id"`
-	IID         int64  `json:"iid"`
-	GroupID     int64  `json:"group_id"`
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	DueDate     string `json:"due_date"`
-	StartDate   string `json:"start_date"`
-	State       string `json:"state"`
-}
-
+// Error represents the value returned when there's an error returned by the
+// Gitlab API
 type Error struct {
 	Message string `json:"message"`
 }
 
+// NewClient returns a new Client already containing the baseURL Gitlab URL
+// and the access token
+func NewClient(token, baseURL string) *Client {
+	return &Client{token, baseURL}
+}
+
+// GetMilestones returns an array of active Milestones that belong to the
+// specific group
 func (c *Client) GetMilestones(group string) ([]Milestone, error) {
 	milestones := []Milestone{}
 
-	req, err := http.NewRequest("GET", buildUrl(c.baseURL, "groups", group, "milestones"), nil)
+	req, err := c.buildRequest(buildUrl("groups", group, "milestones"))
 	if err != nil {
 		return milestones, err
 	}
@@ -68,8 +60,6 @@ func (c *Client) GetMilestones(group string) ([]Milestone, error) {
 	q := req.URL.Query()
 	q.Add("state", "active")
 	req.URL.RawQuery = q.Encode()
-
-	req.Header.Add("PRIVATE-TOKEN", c.token)
 
 	result, err := doRequest(req)
 	if err != nil {
@@ -82,6 +72,19 @@ func (c *Client) GetMilestones(group string) ([]Milestone, error) {
 	}
 
 	return milestones, nil
+}
+
+func (c *Client) buildRequest(url string) (*http.Request, error) {
+	r, err := http.NewRequest("GET", buildUrl(c.baseURL, url), nil)
+	if err == nil {
+		r.Header.Add("PRIVATE-TOKEN", c.token)
+	}
+
+	return r, err
+}
+
+func buildUrl(values ...string) string {
+	return strings.Join(values, "/")
 }
 
 func doRequest(req *http.Request) ([]byte, error) {

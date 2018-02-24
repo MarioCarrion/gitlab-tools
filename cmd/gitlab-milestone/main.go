@@ -33,24 +33,21 @@ import (
 func main() {
 	token, baseURL, group := parseArgs()
 
-	if len(token) == 0 {
-		log.Fatalln("Required parameter missing: 'token'")
-	}
-	if len(baseURL) == 0 {
-		log.Fatalln("Required parameter missing: 'baseURL'")
-	}
-	if len(group) == 0 {
-		log.Fatalln("Required parameter missing: 'group'")
-	}
-
-	git := gitlab.NewClient(token, baseURL)
-	milestones, err := git.GetMilestones(group)
+	c := gitlab.NewClient(token, baseURL)
+	milestones, err := c.GetMilestones(group)
 	if err != nil {
 		log.Fatalln("error", err)
 	}
 
 	for _, milestone := range milestones {
 		fmt.Printf("%+v\n", milestone)
+
+		issues, err := milestone.GetMergeRequests(c)
+		if err != nil {
+			fmt.Printf("error: %s\n", err)
+			continue
+		}
+		fmt.Printf("%+v\n", issues)
 	}
 }
 
@@ -71,5 +68,15 @@ func parseArgs() (string, string, string) {
 		retBaseURL = os.Getenv("GITLAB_TOOLS_BASE_URL")
 	}
 
+	fatalWhenInvalidString("token", retToken)
+	fatalWhenInvalidString("baseURL", retBaseURL)
+	fatalWhenInvalidString("group", *group)
+
 	return retToken, retBaseURL, *group
+}
+
+func fatalWhenInvalidString(n, s string) {
+	if len(s) == 0 {
+		log.Fatalf("Required parameter missing: '%s'\n", n)
+	}
 }
