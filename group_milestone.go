@@ -23,11 +23,10 @@ package gitlab
 
 import (
 	"encoding/json"
-	"strconv"
 )
 
-// Milestone represents the Gitlab milestone
-type Milestone struct {
+// GroupMilestone represents the Gitlab milestone
+type GroupMilestone struct {
 	ID          int64  `json:"id"`
 	IID         int64  `json:"iid"`
 	GroupID     int64  `json:"group_id"`
@@ -40,31 +39,34 @@ type Milestone struct {
 
 // MergeRequest represents the Gitlab Merge Request
 type MergeRequest struct {
-	ID    int64  `json:"id"`
-	IID   int64  `json:"iid"`
-	State string `json:"state"`
-	Title string `json:"title"`
+	ID          int64  `json:"id"`
+	IID         int64  `json:"iid"`
+	State       string `json:"state"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
 }
 
-// GetMergeRequests returns an array of MergeRequest for this Milestone
-func (m *Milestone) GetMergeRequests(c *Client) ([]MergeRequest, error) {
-	mergeReqs := []MergeRequest{}
-
-	req, err := c.buildRequest(buildUrl("groups", strconv.FormatInt(m.GroupID, 10),
-		"milestones", strconv.FormatInt(m.ID, 10),
-		"merge_requests"))
+// GetMergeRequests returns an array of MilestoneMergeRequest for this GroupMilestone
+func (m *GroupMilestone) GetMergeRequests(c *Client) ([]MergeRequest, error) {
+	req, err := c.getRequest(buildUrl("merge_requests"))
 	if err != nil {
-		return mergeReqs, err
+		return nil, err
 	}
+
+	q := req.URL.Query()
+	q.Add("state", "all")
+	q.Add("milestone", m.Title)
+	req.URL.RawQuery = q.Encode()
 
 	result, err := doRequest(req)
 	if err != nil {
-		return mergeReqs, err
+		return nil, err
 	}
 
+	mergeReqs := []MergeRequest{}
 	err = json.Unmarshal(result, &mergeReqs)
 	if err != nil {
-		return mergeReqs, err
+		return nil, err
 	}
 
 	return mergeReqs, nil
